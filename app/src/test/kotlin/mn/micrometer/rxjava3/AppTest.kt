@@ -6,7 +6,9 @@ package mn.micrometer.rxjava3
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import reactor.kotlin.core.publisher.toMono
 
 @MicronautTest
 class AppTest {
@@ -23,8 +25,20 @@ class AppTest {
 
     @Test
     fun `should get list of books`() {
-        val books = bookApiClient.get().blockingFirst()
-        assertEquals(1, books.size)
+        val books = bookApiClient.get().blockingIterable().toList()
+        assertTrue(books.isNotEmpty())
+    }
+
+    @Test
+    fun `should add a book`() {
+        val book = bookApiClient.post(Book(2L, "Test2")).toMono().block()
+        assertEquals(2, book?.id)
+    }
+
+    @Test
+    fun `should update a book`() {
+        val book = bookApiClient.put(Book(1L, "Test1")).toMono().block()
+        assertEquals("Test1", book?.title)
     }
 
 }

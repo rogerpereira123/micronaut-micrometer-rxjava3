@@ -42,8 +42,13 @@ dependencies {
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
+    //RxJava3
     implementation("io.micronaut.rxjava3:micronaut-rxjava3:2.1.1")
     implementation("io.micronaut.rxjava3:micronaut-rxjava3-http-client:2.1.1")
+
+    //Reactor
+    implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.1.5")
 
     kaptTest("io.micronaut:micronaut-inject-java")
     testImplementation("org.junit.jupiter:junit-jupiter-api")

@@ -4,12 +4,19 @@
 package mn.micrometer.rxjava3
 
 import io.micrometer.core.annotation.Timed
+import io.micronaut.core.async.annotation.SingleResult
 import io.micronaut.http.annotation.Controller
 import io.micronaut.http.annotation.Get
+import io.micronaut.http.annotation.Post
+import io.micronaut.http.annotation.Put
 import io.micronaut.http.client.annotation.Client
 import io.micronaut.runtime.Micronaut
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import org.reactivestreams.Publisher
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import java.util.concurrent.ConcurrentHashMap
 
 fun main(args: Array<String>) {
     Micronaut.build()
@@ -22,12 +29,22 @@ data class Book(val id: Long, val title: String)
 
 interface BookApi {
     @Get("/{id}")
-    @Timed
+    @Timed //Doesn't work as Single cannot be converted to Mono
     fun get(id: Long): Single<Book>
 
     @Get
-    @Timed
-    fun get(): Flowable<List<Book>>
+    @Timed //Works as Flowable implements Publisher
+    fun get(): Flowable<Book>
+
+    @Post
+    @SingleResult
+    @Timed //Works
+    fun post(book: Book): Publisher<Book>
+
+    @Put
+    @SingleResult
+    @Timed //Works
+    fun put(book: Book): Publisher<Book>
 }
 
 @Client("/books")
@@ -35,10 +52,22 @@ interface BookClient: BookApi
 
 @Controller("books")
 class BookController: BookApi {
-    private val books = mapOf(1L to Book(1, "Test"))
+    private val books = ConcurrentHashMap<Long, Book>().also { it[1L] = Book(1L, "Test") }
+
     override fun get(id: Long): Single<Book> {
         return books[id]?.let { Single.just(it) } ?: Single.error(Throwable("not found"))
     }
 
-    override fun get(): Flowable<List<Book>> = Flowable.just(books.values.toList())
+    override fun get(): Flowable<Book> = Flowable.fromIterable(books.values)
+
+    override fun post(book: Book): Publisher<Book> {
+        books[book.id] = book
+        return Flux.just(book)
+    }
+
+    override fun put(book: Book): Publisher<Book> {
+        books[book.id] = book
+        return Mono.just(book)
+    }
+
 }
