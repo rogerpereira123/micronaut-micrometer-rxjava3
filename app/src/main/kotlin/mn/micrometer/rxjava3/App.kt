@@ -5,13 +5,11 @@ package mn.micrometer.rxjava3
 
 import io.micrometer.core.annotation.Timed
 import io.micronaut.core.async.annotation.SingleResult
-import io.micronaut.http.annotation.Controller
-import io.micronaut.http.annotation.Get
-import io.micronaut.http.annotation.Post
-import io.micronaut.http.annotation.Put
+import io.micronaut.http.annotation.*
 import io.micronaut.http.client.annotation.Client
 import io.micronaut.runtime.Micronaut
 import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
@@ -32,18 +30,22 @@ interface BookApi {
     @Timed //Doesn't work as Single cannot be converted to Mono
     fun get(id: Long): Single<Book>
 
+    @Get("/search")
+    @Timed //Doesn't work as Maybe cannot be converted to Mono
+    fun search(@QueryValue("book_title") bookTitle: String): Maybe<Book>
+
     @Get
     @Timed //Works as Flowable implements Publisher
     fun get(): Flowable<Book>
 
     @Post
     @SingleResult
-    @Timed //Works
+    @Timed //Works as return type is Publisher
     fun post(book: Book): Publisher<Book>
 
     @Put
     @SingleResult
-    @Timed //Works
+    @Timed //Works as return type is Publisher
     fun put(book: Book): Publisher<Book>
 }
 
@@ -59,6 +61,12 @@ class BookController: BookApi {
     }
 
     override fun get(): Flowable<Book> = Flowable.fromIterable(books.values)
+
+    override fun search(bookTitle: String): Maybe<Book> {
+        return books.values.find { it.title == bookTitle }?.let {
+            Maybe.just(it)
+        } ?: Maybe.empty()
+    }
 
     override fun post(book: Book): Publisher<Book> {
         books[book.id] = book
